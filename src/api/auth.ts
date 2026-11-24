@@ -1,44 +1,39 @@
-import http from './http'
 import type {
-  AuthToken,
   LoginRequest,
-  RefreshRequest,
+  MessageResponse,
   RegisterRequest,
   RegisterResponse,
   User,
   UserContext,
-} from '../types/api'
+} from "../types/api";
+import http from "./http";
 
-export async function login(credentials: LoginRequest): Promise<AuthToken> {
-  const { data } = await http.post<AuthToken>('/auth/login', credentials)
-  return data
+export async function login(credentials: LoginRequest): Promise<MessageResponse> {
+  const { data } = await http.post<MessageResponse>("/auth/login", credentials);
+  return data;
 }
 
-export async function register(
-  credentials: RegisterRequest,
-): Promise<RegisterResponse> {
-  const { data } = await http.post<RegisterResponse>(
-    '/auth/register',
-    credentials,
-  )
-  return data
+export async function register(credentials: RegisterRequest): Promise<RegisterResponse> {
+  const { data } = await http.post<RegisterResponse>("/auth/register", credentials);
+  return data;
 }
 
-export async function refresh(request: RefreshRequest): Promise<AuthToken> {
-  const { data } = await http.post<AuthToken>('/auth/refresh', request)
-  return data
+export async function refresh(): Promise<MessageResponse> {
+  const { data } = await http.post<MessageResponse>("/auth/refresh");
+  return data;
 }
 
-export async function logout(): Promise<void> {
-  await http.post<void>('/auth/logout')
+export async function logout(): Promise<MessageResponse> {
+  const { data } = await http.post<MessageResponse>("/auth/logout");
+  return data;
 }
 
 export async function me(): Promise<User> {
-  const { data } = await http.get<User>('/me')
-  return data
+  const { data } = await http.get<User>("/me");
+  return data;
 }
 
 export async function check(): Promise<UserContext> {
-  const { data } = await http.get<UserContext>('/auth/check')
-  return data
+  const { data } = await http.get<UserContext>("/auth/check");
+  return data;
 }

@@ -1,7 +1,5 @@
-export interface AuthToken {
-  access_token: string
-  expires_in: number
-  refresh_token: string
+export interface MessageResponse {
+  message: string
 }
 
 export interface User {
@@ -10,9 +8,9 @@ export interface User {
 }
 
 export interface UserContext {
-  csrftoken?: string
-  userID: string
-  username: string
+  UserID: string
+  Username: string
+  CSRFToken?: string
 }
 
 export interface ApiError {
@@ -29,10 +27,6 @@ export interface LoginRequest {
 export interface RegisterRequest {
   username: string
   password: string
-}
-
-export interface RefreshRequest {
-  refresh_token: string
 }
 
 export interface RegisterResponse {
