@@ -1,16 +1,64 @@
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
-import { Leaf, Eye, EyeOff, Mail, LockKeyhole, ArrowRight } from 'lucide-vue-next'
+import { onMounted, ref } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { Leaf, Eye, EyeOff, UserRound, LockKeyhole, ArrowRight } from 'lucide-vue-next'
 
-const email = ref('')
+import { getApiError } from '../../api/http'
+import { useAuthStore } from '../../stores/auth'
+
+const route = useRoute()
+const router = useRouter()
+const auth = useAuthStore()
+
+const username = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const message = ref('')
+const successMessage = ref('')
+const loading = ref(false)
 
-function handleLogin() {
-  message.value = 'Integrasi autentikasi dengan backend akan dilakukan pada tahap berikutnya.'
+onMounted(() => {
+  if (route.query.registered === '1') {
+    successMessage.value = 'Account created. Sign in to continue.'
+  }
+})
+
+async function handleLogin() {
+  if (loading.value) {
+    return
+  }
+
+  message.value = ''
+  successMessage.value = ''
+
+  if (username.value.length < 5 || username.value.length > 100) {
+    message.value = 'Username must be between 5 and 100 characters.'
+    return
+  }
+
+  if (!password.value) {
+    message.value = 'Password is required.'
+    return
+  }
+
+  loading.value = true
+
+  try {
+    await auth.login(username.value, password.value)
+
+    const redirect = route.query.redirect
+    const target =
+      typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
+        ? redirect
+        : '/dashboard'
+
+    await router.push(target)
+  } catch (err) {
+    message.value = getApiError(err)
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -44,18 +92,23 @@ function handleLogin() {
           </p>
 
           <form @submit.prevent="handleLogin" class="space-y-5">
+            <p v-if="successMessage" class="text-sm text-emerald-700 bg-emerald-50 rounded-lg p-3">
+              {{ successMessage }}
+            </p>
+
             <div>
-              <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
-                Email address
+              <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
+                Username
               </label>
 
               <div class="relative">
-                <Mail class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" :size="19" />
+                <UserRound class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" :size="19" />
                 <input
-                  id="email"
-                  v-model="email"
-                  type="email"
-                  placeholder="name@example.com"
+                  id="username"
+                  v-model="username"
+                  type="text"
+                  placeholder="Your username"
+                  autocomplete="username"
                   required
                   class="w-full h-12 pl-12 pr-4 rounded-xl border border-gray-200 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition"
                 />
@@ -94,10 +147,16 @@ function handleLogin() {
 
             <button
               type="submit"
-              class="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-600/20"
+              :disabled="loading"
+              class="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-600/20 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Sign In
-              <ArrowRight :size="18" />
+              <template v-if="loading">
+                Signing in...
+              </template>
+              <template v-else>
+                Sign In
+                <ArrowRight :size="18" />
+              </template>
             </button>
 
             <p v-if="message" class="text-sm text-amber-700 bg-amber-50 rounded-lg p-3">

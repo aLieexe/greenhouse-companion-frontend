@@ -1,6 +1,9 @@
 
 <script setup lang="ts">
-import { useRoute, RouterLink, RouterView } from 'vue-router'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter, RouterLink, RouterView } from 'vue-router'
+
+import { useAuthStore } from '../stores/auth'
 
 import {
   Activity,
@@ -17,6 +20,29 @@ import {
 } from 'lucide-vue-next'
 
 const route = useRoute()
+const router = useRouter()
+const auth = useAuthStore()
+
+const signingOut = ref(false)
+
+const initials = computed(() =>
+  auth.user?.username ? auth.user.username.slice(0, 2).toUpperCase() : 'GC',
+)
+
+async function handleSignOut() {
+  if (signingOut.value) {
+    return
+  }
+
+  signingOut.value = true
+
+  try {
+    await auth.logout()
+  } finally {
+    signingOut.value = false
+    await router.push('/login')
+  }
+}
 
 const navigation = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -76,10 +102,12 @@ const navigation = [
       <div class="border-t border-gray-100 p-4">
         <button
           type="button"
-          class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-gray-500 transition hover:bg-red-50 hover:text-red-600"
+          @click="handleSignOut"
+          :disabled="signingOut"
+          class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-gray-500 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <LogOut :size="19" />
-          <span>Sign Out</span>
+          <span>{{ signingOut ? 'Signing out...' : 'Sign Out' }}</span>
         </button>
       </div>
     </aside>
@@ -109,11 +137,13 @@ const navigation = [
 
           <button type="button" class="flex items-center gap-3">
             <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">
-              ED
+              {{ initials }}
             </div>
 
             <div class="hidden text-left sm:block">
-              <p class="text-sm font-semibold text-gray-800">Administrator</p>
+              <p class="text-sm font-semibold text-gray-800">
+                {{ auth.user?.username ?? 'User' }}
+              </p>
               <p class="text-xs text-gray-400">Greenhouse Owner</p>
             </div>
 

@@ -128,10 +128,20 @@ router.beforeEach((to) => {
   const auth = useAuthStore()
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
-    return '/login'
+    return { name: 'Login', query: { redirect: to.fullPath } }
   }
 
   if (to.meta.guestOnly && auth.isAuthenticated) {
+    const redirect = to.query.redirect
+
+    if (
+      typeof redirect === 'string' &&
+      redirect.startsWith('/') &&
+      !redirect.startsWith('//')
+    ) {
+      return redirect
+    }
+
     return '/dashboard'
   }
 
