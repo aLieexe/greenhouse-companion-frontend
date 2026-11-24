@@ -15,7 +15,6 @@ import {
   ChevronDown,
   Check,
   Info,
-  UsersRound,
   Crown,
 } from 'lucide-vue-next'
 
@@ -285,21 +284,14 @@ function roleDescription(role: MemberRole) {
 
 <template>
   <div class="space-y-6 pb-8">
-    <!-- Page heading -->
+    <!-- Page Introduction -->
     <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
       <div>
-        <div class="mb-1 flex items-center gap-2">
-          <h1 class="text-2xl font-bold tracking-tight text-gray-900">
-            Members
-          </h1>
-          <span
-            class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700"
-          >
-            Access Management
-          </span>
-        </div>
-        <p class="text-sm text-gray-500">
-          Manage users and their access permissions for your greenhouse devices.
+        <h3 class="text-2xl font-bold text-gray-900">
+          Members
+        </h3>
+        <p class="mt-1 text-sm text-gray-500">
+          Manage greenhouse members and their access roles.
         </p>
       </div>
 
@@ -323,41 +315,6 @@ function roleDescription(role: MemberRole) {
         {{ successMessage }}
       </div>
     </Transition>
-
-    <!-- Device selector -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-      <div class="mb-3 flex items-center gap-2">
-        <UsersRound class="h-4 w-4 text-emerald-600" />
-        <h2 class="text-sm font-semibold text-gray-900">
-          Select Device
-        </h2>
-      </div>
-
-      <div class="relative max-w-md">
-        <select
-          v-model="selectedDeviceId"
-          class="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pr-10 text-sm font-medium text-gray-800 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-        >
-          <option
-            v-for="device in devices"
-            :key="device.id"
-            :value="device.id"
-          >
-            {{ device.name }} — {{ device.hardware_id }}
-          </option>
-        </select>
-        <ChevronDown
-          class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-        />
-      </div>
-
-      <p class="mt-2 text-xs text-gray-500">
-        Showing members who have access to
-        <span class="font-semibold text-gray-700">
-          {{ selectedDevice.name }}
-        </span>
-      </p>
-    </div>
 
     <!-- Summary cards -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

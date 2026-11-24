@@ -51,7 +51,7 @@ async function handleLogin() {
     const target =
       typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
         ? redirect
-        : '/dashboard'
+        : '/devices'
 
     await router.push(target)
   } catch (err) {

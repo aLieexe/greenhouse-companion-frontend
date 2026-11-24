@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter, RouterLink, RouterView } from 'vue-router'
 
 import { useAuthStore } from '../stores/auth'
+import { useDevicesStore } from '../stores/devices'
 
 import {
   Activity,
@@ -44,15 +45,21 @@ async function handleSignOut() {
   }
 }
 
-const navigation = [
-  { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'Monitoring', path: '/monitoring', icon: Activity },
-  { name: 'Device Control', path: '/device-control', icon: SlidersHorizontal },
-  { name: 'Devices', path: '/devices', icon: Cpu },
-  { name: 'Configuration', path: '/configuration', icon: Settings },
-  { name: 'Members', path: '/members', icon: Users },
-  { name: 'Logs & History', path: '/logs', icon: ScrollText },
-]
+const devicesStore = useDevicesStore()
+
+const deviceId = computed(() => String(route.params.deviceId ?? ''))
+const deviceName = computed(
+  () => devicesStore.deviceById(deviceId.value)?.name ?? 'Greenhouse',
+)
+
+const navigation = computed(() => [
+  { name: 'Dashboard', path: `/${deviceId.value}/dashboard`, icon: LayoutDashboard },
+  { name: 'Monitoring', path: `/${deviceId.value}/monitoring`, icon: Activity },
+  { name: 'Device Control', path: `/${deviceId.value}/device-control`, icon: SlidersHorizontal },
+  { name: 'Configuration', path: `/${deviceId.value}/configuration`, icon: Settings },
+  { name: 'Members', path: `/${deviceId.value}/members`, icon: Users },
+  { name: 'Logs & History', path: `/${deviceId.value}/logs`, icon: ScrollText },
+])
 </script>
 
 <template>
@@ -98,8 +105,18 @@ const navigation = [
         </RouterLink>
       </nav>
 
-      <!-- Sidebar Footer -->
-      <div class="border-t border-gray-100 p-4">
+      <!-- Devices back-link and Sidebar Footer -->
+      <div class="space-y-1 border-t border-gray-100 p-4">
+        <RouterLink
+          to="/devices"
+          class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-gray-500 transition hover:bg-gray-50 hover:text-gray-800"
+        >
+          <Cpu :size="19" />
+          <span>Devices</span>
+        </RouterLink>
+
+        <div class="border-t border-gray-100" />
+
         <button
           type="button"
           @click="handleSignOut"
@@ -120,7 +137,7 @@ const navigation = [
         <div>
           <p class="text-sm text-gray-500">Welcome back,</p>
           <h2 class="text-lg font-bold text-gray-900">
-            Greenhouse Overview
+            {{ deviceName }}
           </h2>
         </div>
 

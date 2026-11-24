@@ -2,7 +2,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import {
-  Activity,
   AlertCircle,
   AlertTriangle,
   CheckCircle2,
@@ -12,7 +11,6 @@ import {
   Filter,
   Info,
   Search,
-  Server,
   Terminal,
 } from 'lucide-vue-next'
 
@@ -319,10 +317,6 @@ function resetFilters() {
   currentPage.value = 1
 }
 
-function changeDevice() {
-  resetFilters()
-}
-
 function changePage(page: number) {
   if (page < 1 || page > totalPages.value) return
   currentPage.value = page
@@ -335,59 +329,15 @@ function handleFilterChange() {
 
 <template>
   <div class="space-y-6">
-    <!-- Page heading -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <div class="flex items-center gap-2 text-sm text-gray-500">
-          <Activity class="h-4 w-4" />
-          <span>System Activity</span>
-        </div>
+    <!-- Page Introduction -->
+    <section class="mb-8">
+      <h3 class="text-2xl font-bold text-gray-900">
+        Logs & History
+      </h3>
 
-        <h1 class="mt-2 text-2xl font-bold tracking-tight text-gray-900">
-          Logs & History
-        </h1>
-
-        <p class="mt-1 text-sm text-gray-500">
-          Review device events, system messages, and operational history.
-        </p>
-      </div>
-
-      <div class="flex items-center gap-2 self-start rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
-        <Info class="h-4 w-4" />
-        Demo Data
-      </div>
-    </div>
-
-    <!-- Device selector -->
-    <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-            <Server class="h-5 w-5" />
-          </div>
-
-          <div>
-            <p class="text-sm font-semibold text-gray-900">Selected Device</p>
-            <p class="text-xs text-gray-500">
-              Choose a device to view its activity logs.
-            </p>
-          </div>
-        </div>
-
-        <select
-          v-model="selectedDevice"
-          @change="changeDevice"
-          class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 sm:w-64"
-        >
-          <option
-            v-for="device in devices"
-            :key="device.id"
-            :value="device.id"
-          >
-            {{ device.name }}
-          </option>
-        </select>
-      </div>
+      <p class="mt-1 text-sm text-gray-500">
+        Review device events, system messages, and operational history.
+      </p>
     </section>
 
     <!-- Summary cards -->

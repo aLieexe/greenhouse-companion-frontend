@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   Save,
   RotateCcw,
-  Info,
   CheckCircle2,
   Leaf,
 } from 'lucide-vue-next'
@@ -107,22 +106,15 @@ function metricLabel(metric: string) {
 
 <template>
   <div class="space-y-6 pb-8">
-    <!-- Page heading -->
+    <!-- Page Introduction -->
     <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
       <div>
-        <div class="mb-2 flex items-center gap-2 text-sm text-gray-500">
-          <Settings2 :size="16" />
-          <span>Device Management</span>
-          <span>/</span>
-          <span class="text-emerald-700">Configuration</span>
-        </div>
-
-        <h1 class="text-2xl font-bold tracking-tight text-gray-900">
+        <h3 class="text-2xl font-bold text-gray-900">
           Configuration
-        </h1>
+        </h3>
 
         <p class="mt-1 text-sm text-gray-500">
-          Manage automation behavior and actuator thresholds.
+          Configure greenhouse device settings and automation.
         </p>
       </div>
 
@@ -144,23 +136,6 @@ function metricLabel(metric: string) {
           <Save :size="16" />
           Save Changes
         </button>
-      </div>
-    </div>
-
-    <!-- Preview notice -->
-    <div
-      class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4"
-    >
-      <Info :size="19" class="mt-0.5 shrink-0 text-amber-600" />
-      <div>
-        <p class="text-sm font-semibold text-amber-900">
-          Preview Configuration
-        </p>
-        <p class="mt-1 text-sm leading-relaxed text-amber-800">
-          These settings are currently stored locally in this page. Changes
-          will not be sent to your greenhouse device until backend integration
-          is implemented.
-        </p>
       </div>
     </div>
 

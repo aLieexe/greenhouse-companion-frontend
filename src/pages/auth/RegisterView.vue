@@ -1,4 +1,4 @@
-<script setup lang="ts">
+ <script setup lang="ts">
 import { ArrowRight, Eye, EyeOff, Leaf, LockKeyhole, UserRound } from "lucide-vue-next";
 import { ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";

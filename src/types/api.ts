@@ -39,3 +39,26 @@ export interface RegisterResponse {
   id: string
   username: string
 }
+
+export type DeviceStatus = 'unknown' | 'online' | 'offline'
+
+export type DeviceRole = 'owner' | 'admin' | 'viewer'
+
+export interface Device {
+  id: string
+  name: string
+  hardware_id: string
+  status: DeviceStatus
+  role: DeviceRole
+  created_at: string
+}
+
+export interface RegisterDeviceRequest {
+  name: string
+  hardware_id: string
+}
+
+export interface UpdateDeviceRequest {
+  name: string
+  hardware_id: string
+}

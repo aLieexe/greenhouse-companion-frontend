@@ -1,6 +1,7 @@
 
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useDevicesStore } from '../stores/devices'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -24,9 +25,30 @@ const router = createRouter({
       },
     },
 
-    // Main application layout
+    // Devices are managed outside of the device-scoped main menu
     {
-      path: '/',
+      path: '/devices',
+      component: () => import('../layouts/DevicesLayout.vue'),
+      meta: {
+        requiresAuth: true,
+      },
+      children: [
+        {
+          path: '',
+          name: 'Devices',
+          component: () => import('../pages/dashboard/DevicesView.vue'),
+          meta: {
+            title: 'Devices',
+            description:
+              'Register and manage your greenhouse devices.',
+          },
+        },
+      ],
+    },
+
+    // Device-scoped application layout
+    {
+      path: '/:deviceId',
       component: () => import('../layouts/DashboardLayout.vue'),
       meta: {
         requiresAuth: true,
@@ -34,11 +56,11 @@ const router = createRouter({
       children: [
         {
           path: '',
-          redirect: '/dashboard',
+          redirect: (to) => `/${to.params.deviceId}/dashboard`,
         },
         {
           path: 'dashboard',
-          name: 'Dashboard',
+          name: 'DeviceDashboard',
           component: () => import('../pages/dashboard/DashboardView.vue'),
           meta: {
             title: 'Dashboard Overview',
@@ -48,7 +70,7 @@ const router = createRouter({
         },
         {
           path: 'monitoring',
-          name: 'Monitoring',
+          name: 'DeviceMonitoring',
           component: () =>
             import('../pages/dashboard/MonitoringView.vue'),
           meta: {
@@ -59,7 +81,7 @@ const router = createRouter({
         },
         {
           path: 'device-control',
-          name: 'Device Control',
+          name: 'DeviceControl',
           component: () =>
             import('../pages/dashboard/DeviceControlView.vue'),
           meta: {
@@ -69,19 +91,8 @@ const router = createRouter({
           },
         },
         {
-          path: 'devices',
-          name: 'Devices',
-          component: () =>
-            import('../pages/dashboard/DevicesView.vue'),
-          meta: {
-            title: 'Devices',
-            description:
-              'Register and manage your greenhouse devices.',
-          },
-        },
-        {
           path: 'configuration',
-          name: 'Configuration',
+          name: 'DeviceConfiguration',
           component: () =>
             import('../pages/dashboard/ConfigurationView.vue'),
           meta: {
@@ -92,7 +103,7 @@ const router = createRouter({
         },
         {
           path: 'members',
-          name: 'Members',
+          name: 'DeviceMembers',
           component: () =>
             import('../pages/dashboard/MembersView.vue'),
           meta: {
@@ -103,7 +114,7 @@ const router = createRouter({
         },
         {
           path: 'logs',
-          name: 'Logs & History',
+          name: 'DeviceLogs',
           component: () =>
             import('../pages/dashboard/LogsView.vue'),
           meta: {
@@ -115,16 +126,21 @@ const router = createRouter({
       ],
     },
 
+    {
+      path: '/',
+      redirect: '/devices',
+    },
+
     // Unknown routes
     {
       path: '/:pathMatch(.*)*',
-      redirect: '/dashboard',
+      redirect: '/devices',
     },
   ],
 })
 
 // Navigation guard
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
@@ -142,7 +158,16 @@ router.beforeEach((to) => {
       return redirect
     }
 
-    return '/dashboard'
+    return '/devices'
+  }
+
+  if (typeof to.params.deviceId === 'string') {
+    const devices = useDevicesStore()
+    await devices.ensureLoaded()
+
+    if (!devices.deviceById(to.params.deviceId)) {
+      return '/devices'
+    }
   }
 
   return true
