@@ -56,3 +56,81 @@ export interface UpdateDeviceRequest {
   name: string
   hardware_id: string
 }
+
+export interface DeviceDetail {
+  id: string
+  hardware_id: string
+  name: string
+  created_at: string
+  status: DeviceStatus
+  role?: DeviceRole
+  boot_id?: string
+  current_ip?: string
+  last_seen_at?: string
+}
+
+export type ActuatorKey = 'pump' | 'fan-1' | 'fan-2'
+
+export type ActuatorMode = 'manual' | 'automatic'
+
+export interface ActuatorRuntimeState {
+  on: boolean
+  duty: number
+  mode: ActuatorMode
+}
+
+export interface ActuatorStateResponse {
+  device_id: string
+  actuators?: Partial<Record<ActuatorKey, ActuatorRuntimeState>>
+  reported_at?: string
+  received_at?: string
+}
+
+export interface TelemetryMetrics {
+  ambient_temp_c?: number
+  ambient_humidity?: number
+  soil_temp_c?: number
+  soil_moisture?: number
+}
+
+export interface TelemetryActuatorState {
+  on: boolean
+  duty: number
+}
+
+export interface Telemetry {
+  device_id: string
+  boot_id: string
+  seq: number
+  received_at: string
+  metrics: TelemetryMetrics
+  actuators?: Partial<Record<ActuatorKey, TelemetryActuatorState>>
+}
+
+export interface TelemetryListResponse {
+  telemetry: Telemetry[]
+  total_count: number
+  page: number
+  page_size: number
+}
+
+export interface SetActuatorCommand {
+  action: 'set_actuator'
+  actuator: ActuatorKey
+  state: boolean
+  duty?: number
+  mode: ActuatorMode
+}
+
+export type CommandRequest = SetActuatorCommand
+
+export interface DeviceCommand {
+  id: string
+  action: string
+  status: string
+  payload: Record<string, unknown>
+  triggered_by: string
+  created_at: string
+  acked_at?: string
+  ack_result?: Record<string, unknown>
+}

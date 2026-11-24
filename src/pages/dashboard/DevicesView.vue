@@ -24,6 +24,7 @@ import {
 import { getApiError } from '../../api/http'
 import { useDevicesStore } from '../../stores/devices'
 import type { Device, DeviceStatus } from '../../types/api'
+import { formatMacAddress } from '../../utils/format'
 
 const router = useRouter()
 const store = useDevicesStore()
@@ -86,17 +87,6 @@ function statusLabel(status: DeviceStatus) {
   }
 
   return labels[status]
-}
-
-function formatMacAddress(value: string): string {
-  const normalized = value.trim()
-
-  if (!/^[0-9a-f]{12}$/.test(normalized)) {
-    return value
-  }
-
-  const pairs = normalized.match(/.{2}/g) ?? []
-  return pairs.join(':').toUpperCase()
 }
 
 function openDevice(device: Device) {

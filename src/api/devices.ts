@@ -1,8 +1,13 @@
-import type { Device, RegisterDeviceRequest, UpdateDeviceRequest } from "../types/api";
+import type { Device, DeviceDetail, RegisterDeviceRequest, UpdateDeviceRequest } from "../types/api";
 import http from "./http";
 
 export async function listDevices(): Promise<Device[]> {
   const { data } = await http.get<Device[]>("/devices");
+  return data;
+}
+
+export async function getDevice(deviceId: string): Promise<DeviceDetail> {
+  const { data } = await http.get<DeviceDetail>(`/devices/${deviceId}`);
   return data;
 }
 

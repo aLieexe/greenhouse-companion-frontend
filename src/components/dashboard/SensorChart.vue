@@ -1,5 +1,5 @@
-
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Line } from 'vue-chartjs'
 
 import {
@@ -9,7 +9,6 @@ import {
   PointElement,
   LineElement,
   Tooltip,
-  Legend,
   Filler,
   type ChartOptions,
 } from 'chart.js'
@@ -20,49 +19,41 @@ ChartJS.register(
   PointElement,
   LineElement,
   Tooltip,
-  Legend,
   Filler,
 )
 
-// Simulated historical sensor data
-const chartData = {
-  labels: [
-    '08:00',
-    '09:00',
-    '10:00',
-    '11:00',
-    '12:00',
-    '13:00',
-    '14:00',
-  ],
+interface Props {
+  labels: string[]
+  values: (number | null)[]
+  label: string
+  color: string
+  unit: string
+  height?: string
+}
 
+const props = withDefaults(defineProps<Props>(), {
+  height: 'h-64',
+})
+
+const chartData = computed(() => ({
+  labels: props.labels,
   datasets: [
     {
-      label: 'Ambient Temperature',
-      data: [26.2, 26.8, 27.5, 28.1, 29.2, 28.8, 28.6],
-      borderColor: '#059669',
-      backgroundColor: 'rgba(5, 150, 105, 0.1)',
-      borderWidth: 2,
+      label: props.label,
+      data: props.values,
+      borderColor: props.color,
+      backgroundColor: `${props.color}18`,
+      borderWidth: 2.5,
       pointRadius: 3,
       pointHoverRadius: 6,
+      pointBackgroundColor: props.color,
       tension: 0.4,
       fill: true,
     },
-    {
-      label: 'Soil Temperature',
-      data: [23.1, 23.3, 23.7, 24.0, 24.5, 24.4, 24.3],
-      borderColor: '#f59e0b',
-      backgroundColor: 'rgba(245, 158, 11, 0.1)',
-      borderWidth: 2,
-      pointRadius: 3,
-      pointHoverRadius: 6,
-      tension: 0.4,
-      fill: false,
-    },
   ],
-}
+}))
 
-const chartOptions: ChartOptions<'line'> = {
+const chartOptions = computed<ChartOptions<'line'>>(() => ({
   responsive: true,
   maintainAspectRatio: false,
 
@@ -73,16 +64,7 @@ const chartOptions: ChartOptions<'line'> = {
 
   plugins: {
     legend: {
-      position: 'bottom',
-      labels: {
-        usePointStyle: true,
-        pointStyle: 'circle',
-        padding: 20,
-        color: '#6b7280',
-        font: {
-          size: 11,
-        },
-      },
+      display: false,
     },
 
     tooltip: {
@@ -93,6 +75,9 @@ const chartOptions: ChartOptions<'line'> = {
       },
       bodyFont: {
         size: 12,
+      },
+      callbacks: {
+        label: (context) => `${context.parsed.y} ${props.unit}`,
       },
     },
   },
@@ -123,21 +108,18 @@ const chartOptions: ChartOptions<'line'> = {
         font: {
           size: 11,
         },
-        callback(value) {
-          return `${value} °C`
-        },
+        callback: (value) => `${value} ${props.unit}`,
       },
       border: {
         display: false,
-        dash: [4, 4],
       },
     },
   },
-}
+}))
 </script>
 
 <template>
-  <div class="h-64 w-full">
+  <div :class="[props.height, 'w-full']">
     <Line
       :data="chartData"
       :options="chartOptions"
