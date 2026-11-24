@@ -1,4 +1,9 @@
-import type { Device, DeviceDetail, RegisterDeviceRequest, UpdateDeviceRequest } from "../types/api";
+import type {
+  Device,
+  DeviceDetail,
+  RegisterDeviceRequest,
+  UpdateDeviceRequest,
+} from "../types/api";
 import http from "./http";
 
 export async function listDevices(): Promise<Device[]> {

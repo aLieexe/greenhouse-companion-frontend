@@ -134,3 +134,18 @@ export interface DeviceCommand {
   acked_at?: string
   ack_result?: Record<string, unknown>
 }
+
+export interface DeviceCommandSummary {
+  id: string
+  action: string
+  status: string
+  triggered_by: string
+  created_at: string
+}
+
+export interface CommandListResponse {
+  commands: DeviceCommandSummary[]
+  total_count: number
+  page: number
+  page_size: number
+}

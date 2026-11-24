@@ -23,27 +23,27 @@ export async function listTelemetry(
     received_to,
   }: TelemetryQuery = {},
 ): Promise<TelemetryListResponse> {
-  const { data } = await http.get<TelemetryListResponse>(
-    `/devices/${deviceId}/telemetry`,
-    {
-      params: {
-        page,
-        limit,
-        boot_id,
-        seq_from,
-        seq_to,
-        received_from,
-        received_to,
-      },
+  const { data } = await http.get<TelemetryListResponse>(`/devices/${deviceId}/telemetry`, {
+    params: {
+      page,
+      limit,
+      boot_id,
+      seq_from,
+      seq_to,
+      received_from,
+      received_to,
     },
-  );
+  });
   return data;
 }
 
 export function buildTelemetrySocketUrl(deviceId: string): string {
   const configured = import.meta.env.VITE_API_BASE_URL;
   const origin = configured
-    ? configured.trim().replace(/^http:/, "ws:").replace(/^https:/, "wss:")
+    ? configured
+        .trim()
+        .replace(/^http:/, "ws:")
+        .replace(/^https:/, "wss:")
     : `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}`;
 
   return `${origin.replace(/\/$/, "")}/devices/${deviceId}/telemetry/ws`;
