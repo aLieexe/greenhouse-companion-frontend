@@ -63,7 +63,7 @@ const navigation = computed(() => [
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 lg:flex">
+  <div class="flex h-screen overflow-hidden bg-gray-50">
 
     <!-- Sidebar -->
     <aside class="hidden w-64 shrink-0 border-r border-gray-200 bg-white lg:flex lg:flex-col">
@@ -130,10 +130,10 @@ const navigation = computed(() => [
     </aside>
 
     <!-- Main Content -->
-    <div class="min-w-0 flex-1">
+    <div class="flex min-w-0 flex-1 flex-col">
 
       <!-- Header -->
-      <header class="flex h-20 items-center justify-between border-b border-gray-200 bg-white px-5 sm:px-8">
+      <header class="flex h-20 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-5 sm:px-8">
         <div>
           <p class="text-sm text-gray-500">Welcome back,</p>
           <h2 class="text-lg font-bold text-gray-900">
@@ -170,7 +170,7 @@ const navigation = computed(() => [
       </header>
 
       <!-- Page Content -->
-      <main class="p-5 sm:p-8">
+      <main class="flex-1 overflow-y-auto p-5 sm:p-8">
         <RouterView />
       </main>
 
