@@ -15,7 +15,17 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/auth': { target, changeOrigin: true },
-        '/devices': { target, changeOrigin: true, ws: true },
+        '/devices': {
+          target,
+          changeOrigin: true,
+          ws: true,
+          // Page navigations must reach the SPA while API calls stay proxied.
+          bypass: (req) => {
+            if (req.headers.accept?.includes('text/html')) {
+              return req.url ?? '/'
+            }
+          },
+        },
         '/me': { target, changeOrigin: true },
       },
     },

@@ -131,10 +131,16 @@ const router = createRouter({
       redirect: '/devices',
     },
 
+    {
+      path: '/404',
+      name: 'NotFound',
+      component: () => import('../pages/errors/NotFoundView.vue'),
+    },
+
     // Unknown routes
     {
       path: '/:pathMatch(.*)*',
-      redirect: '/devices',
+      redirect: '/404',
     },
   ],
 })
@@ -166,7 +172,7 @@ router.beforeEach(async (to) => {
     await devices.ensureLoaded()
 
     if (!devices.deviceById(to.params.deviceId)) {
-      return '/devices'
+      return { name: 'NotFound', query: { from: to.fullPath } }
     }
   }
 
