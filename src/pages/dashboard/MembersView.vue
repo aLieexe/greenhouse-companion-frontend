@@ -1,7 +1,9 @@
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import {
+  AlertCircle,
   Users,
   UserPlus,
   Search,
@@ -14,102 +16,37 @@ import {
   X,
   ChevronDown,
   Check,
-  Info,
   Crown,
+  RefreshCw,
 } from 'lucide-vue-next'
 
-type MemberRole = 'owner' | 'admin' | 'viewer'
+import {
+  addMember,
+  listMembers,
+  removeMember as removeMemberRequest,
+  updateMemberRole,
+} from '../../api/members'
+import { getApiError } from '../../api/http'
+import { useDevicesStore } from '../../stores/devices'
+import type { DeviceMember, DeviceRole, MemberAssignableRole } from '../../types/api'
 
-interface Device {
-  id: string
-  name: string
-  hardware_id: string
-}
+const route = useRoute()
+const devicesStore = useDevicesStore()
+const deviceId = computed(() => String(route.params.deviceId ?? ''))
 
-interface Member {
-  user_id: string
-  username: string
-  role: MemberRole
-}
-
-const devices = ref<Device[]>([
-  {
-    id: 'device-001',
-    name: 'Main Unit',
-    hardware_id: 'GH-MAIN-001',
-  },
-  {
-    id: 'device-002',
-    name: 'Backup Unit',
-    hardware_id: 'GH-BACKUP-002',
-  },
-  {
-    id: 'device-003',
-    name: 'Experimental Unit',
-    hardware_id: 'GH-EXP-003',
-  },
-])
-
-const selectedDeviceId = ref('device-001')
-
-const membersByDevice = ref<Record<string, Member[]>>({
-  'device-001': [
-    {
-      user_id: 'usr-001',
-      username: 'eddie',
-      role: 'owner',
-    },
-    {
-      user_id: 'usr-002',
-      username: 'alexandra',
-      role: 'admin',
-    },
-    {
-      user_id: 'usr-003',
-      username: 'raka',
-      role: 'viewer',
-    },
-    {
-      user_id: 'usr-004',
-      username: 'nadia',
-      role: 'viewer',
-    },
-  ],
-  'device-002': [
-    {
-      user_id: 'usr-001',
-      username: 'eddie',
-      role: 'owner',
-    },
-    {
-      user_id: 'usr-005',
-      username: 'farhan',
-      role: 'admin',
-    },
-  ],
-  'device-003': [
-    {
-      user_id: 'usr-001',
-      username: 'eddie',
-      role: 'owner',
-    },
-    {
-      user_id: 'usr-006',
-      username: 'dimas',
-      role: 'viewer',
-    },
-  ],
-})
-
-const selectedDevice = computed(
-  () =>
-    devices.value.find((device) => device.id === selectedDeviceId.value) ??
-    devices.value[0],
+const deviceName = computed(
+  () => devicesStore.deviceById(deviceId.value)?.name ?? 'this device',
+)
+const isOwner = computed(
+  () => devicesStore.deviceById(deviceId.value)?.role === 'owner',
 )
 
-const members = computed(
-  () => membersByDevice.value[selectedDeviceId.value] ?? [],
-)
+const members = ref<DeviceMember[]>([])
+const membersLoading = ref(false)
+const membersError = ref('')
+const actionError = ref('')
+
+let loadToken = 0
 
 const searchQuery = ref('')
 const roleFilter = ref('all')
@@ -131,17 +68,24 @@ const filteredMembers = computed(() => {
   })
 })
 
-const ownerCount = computed(
-  () => members.value.filter((member) => member.role === 'owner').length,
-)
+async function loadMembers(id: string) {
+  const token = ++loadToken
+  membersLoading.value = true
+  membersError.value = ''
 
-const adminCount = computed(
-  () => members.value.filter((member) => member.role === 'admin').length,
-)
+  try {
+    const response = await listMembers(id)
+    if (id !== deviceId.value || token !== loadToken) return
 
-const viewerCount = computed(
-  () => members.value.filter((member) => member.role === 'viewer').length,
-)
+    members.value = response
+    actionError.value = ''
+  } catch (err) {
+    if (id !== deviceId.value || token !== loadToken) return
+    membersError.value = getApiError(err)
+  } finally {
+    if (id === deviceId.value && token === loadToken) membersLoading.value = false
+  }
+}
 
 // Modal state
 const isModalOpen = ref(false)
@@ -150,7 +94,7 @@ const editingUserId = ref<string | null>(null)
 
 const memberForm = reactive({
   username: '',
-  role: 'viewer' as MemberRole,
+  role: 'viewer' as MemberAssignableRole,
 })
 
 const formError = ref('')
@@ -166,11 +110,13 @@ function openAddModal() {
   activeMenu.value = null
 }
 
-function openEditModal(member: Member) {
+function openEditModal(member: DeviceMember) {
+  if (member.role === 'owner') return
+
   modalMode.value = 'edit'
   editingUserId.value = member.user_id
   memberForm.username = member.username
-  memberForm.role = member.role
+  memberForm.role = member.role === 'viewer' ? 'viewer' : 'admin'
   formError.value = ''
   isModalOpen.value = true
   activeMenu.value = null
@@ -181,74 +127,73 @@ function closeModal() {
   formError.value = ''
 }
 
-function saveMember() {
+async function saveMember() {
   const username = memberForm.username.trim()
 
-  if (!username) {
-    formError.value = 'Username cannot be empty.'
+  if (!username || username.length > 64) {
+    formError.value = 'Username must be between 1 and 64 characters.'
     return
   }
 
-  if (modalMode.value === 'add') {
-    const duplicate = members.value.some(
-      (member) => member.username.toLowerCase() === username.toLowerCase(),
-    )
+  const id = deviceId.value
+  const role = memberForm.role
+  const editingId = editingUserId.value
 
-    if (duplicate) {
-      formError.value = 'This username is already a member of this device.'
-      return
+  if (modalMode.value === 'edit' && !editingId) return
+
+  try {
+    if (modalMode.value === 'add') {
+      await addMember(id, { username, role })
+    } else if (editingId) {
+      await updateMemberRole(id, editingId, { role })
     }
 
-    const newMember: Member = {
-      user_id: `usr-${Date.now().toString().slice(-6)}`,
-      username,
-      role: memberForm.role,
-    }
+    if (id !== deviceId.value) return
 
-    membersByDevice.value[selectedDeviceId.value].push(newMember)
-    showSuccess(`${username} has been added to the device.`)
-  } else {
-    const member = members.value.find(
-      (item) => item.user_id === editingUserId.value,
-    )
+    const message =
+      modalMode.value === 'add'
+        ? `${username} has been added to the device.`
+        : `${username}'s role has been updated.`
 
-    if (!member) return
+    closeModal()
+    await loadMembers(id)
+    if (id !== deviceId.value) return
 
-    // Owner role is reserved for the device owner in this demo.
-    if (member.role === 'owner') {
-      formError.value = 'The owner role cannot be changed in this preview.'
-      return
-    }
-
-    member.role = memberForm.role
-    showSuccess(`${username}'s role has been updated.`)
+    showSuccess(message)
+  } catch (err) {
+    if (id !== deviceId.value) return
+    formError.value = getApiError(err)
   }
-
-  closeModal()
 }
 
-function removeMember(member: Member) {
+async function removeMember(member: DeviceMember) {
   activeMenu.value = null
 
-  if (member.role === 'owner') {
-    showSuccess('The device owner cannot be removed.')
-    return
-  }
+  if (member.role === 'owner') return
 
   const confirmed = window.confirm(
-    `Remove ${member.username} from ${selectedDevice.value.name}?`,
+    `Remove ${member.username} from ${deviceName.value}?`,
   )
-
   if (!confirmed) return
 
-  membersByDevice.value[selectedDeviceId.value] = members.value.filter(
-    (item) => item.user_id !== member.user_id,
-  )
+  const id = deviceId.value
 
-  showSuccess(`${member.username} has been removed.`)
+  try {
+    await removeMemberRequest(id, member.user_id)
+    if (id !== deviceId.value) return
+
+    await loadMembers(id)
+    if (id !== deviceId.value) return
+
+    showSuccess(`${member.username} has been removed.`)
+  } catch (err) {
+    if (id !== deviceId.value) return
+    actionError.value = getApiError(err)
+  }
 }
 
 function showSuccess(message: string) {
+  actionError.value = ''
   successMessage.value = message
   window.setTimeout(() => {
     if (successMessage.value === message) {
@@ -261,8 +206,8 @@ function toggleMenu(userId: string) {
   activeMenu.value = activeMenu.value === userId ? null : userId
 }
 
-function roleLabel(role: MemberRole) {
-  const labels: Record<MemberRole, string> = {
+function roleLabel(role: DeviceRole) {
+  const labels: Record<DeviceRole, string> = {
     owner: 'Owner',
     admin: 'Admin',
     viewer: 'Viewer',
@@ -271,8 +216,8 @@ function roleLabel(role: MemberRole) {
   return labels[role]
 }
 
-function roleDescription(role: MemberRole) {
-  const descriptions: Record<MemberRole, string> = {
+function roleDescription(role: DeviceRole) {
+  const descriptions: Record<DeviceRole, string> = {
     owner: 'Full device ownership and member management.',
     admin: 'Can manage device settings and operations.',
     viewer: 'Can view device information and monitoring data.',
@@ -280,6 +225,24 @@ function roleDescription(role: MemberRole) {
 
   return descriptions[role]
 }
+
+onMounted(() => {
+  void loadMembers(deviceId.value)
+})
+
+watch(deviceId, (id) => {
+  loadToken++
+  members.value = []
+  membersLoading.value = false
+  membersError.value = ''
+  actionError.value = ''
+  searchQuery.value = ''
+  roleFilter.value = 'all'
+  activeMenu.value = null
+  closeModal()
+
+  void loadMembers(id)
+})
 </script>
 
 <template>
@@ -296,6 +259,7 @@ function roleDescription(role: MemberRole) {
       </div>
 
       <button
+        v-if="isOwner"
         type="button"
         @click="openAddModal"
         class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
@@ -316,61 +280,35 @@ function roleDescription(role: MemberRole) {
       </div>
     </Transition>
 
-    <!-- Summary cards -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div class="rounded-xl bg-gray-100 p-2.5">
-            <Users class="h-5 w-5 text-gray-600" />
-          </div>
-          <span class="text-xs font-medium text-gray-400">Total</span>
-        </div>
-        <p class="mt-4 text-2xl font-bold text-gray-900">
-          {{ members.length }}
-        </p>
-        <p class="mt-1 text-sm text-gray-500">Total Members</p>
-      </div>
+    <section
+      v-if="membersError"
+      class="rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center"
+    >
+      <AlertCircle :size="28" class="mx-auto text-rose-600" />
+      <p class="mt-3 text-sm font-semibold text-rose-800">
+        Unable to load members
+      </p>
+      <p class="mt-1 text-sm text-rose-700">
+        {{ membersError }}
+      </p>
+      <button
+        type="button"
+        @click="loadMembers(deviceId)"
+        class="mt-4 inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
+      >
+        <RefreshCw :size="16" />
+        Retry
+      </button>
+    </section>
 
-      <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div class="rounded-xl bg-amber-50 p-2.5">
-            <Crown class="h-5 w-5 text-amber-600" />
-          </div>
-          <span class="text-xs font-medium text-gray-400">Ownership</span>
-        </div>
-        <p class="mt-4 text-2xl font-bold text-gray-900">
-          {{ ownerCount }}
-        </p>
-        <p class="mt-1 text-sm text-gray-500">Owners</p>
-      </div>
+    <section
+      v-else-if="membersLoading"
+      class="flex min-h-64 items-center justify-center rounded-2xl border border-gray-200 bg-white shadow-sm"
+    >
+      <RefreshCw :size="28" class="animate-spin text-emerald-600" />
+    </section>
 
-      <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div class="rounded-xl bg-blue-50 p-2.5">
-            <ShieldCheck class="h-5 w-5 text-blue-600" />
-          </div>
-          <span class="text-xs font-medium text-gray-400">Management</span>
-        </div>
-        <p class="mt-4 text-2xl font-bold text-gray-900">
-          {{ adminCount }}
-        </p>
-        <p class="mt-1 text-sm text-gray-500">Administrators</p>
-      </div>
-
-      <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div class="rounded-xl bg-violet-50 p-2.5">
-            <Eye class="h-5 w-5 text-violet-600" />
-          </div>
-          <span class="text-xs font-medium text-gray-400">Read Access</span>
-        </div>
-        <p class="mt-4 text-2xl font-bold text-gray-900">
-          {{ viewerCount }}
-        </p>
-        <p class="mt-1 text-sm text-gray-500">Viewers</p>
-      </div>
-    </div>
-
+    <template v-else>
     <!-- Role information -->
     <div class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5">
       <div class="mb-4 flex items-center gap-2">
@@ -402,6 +340,14 @@ function roleDescription(role: MemberRole) {
       </div>
     </div>
 
+    <div
+      v-if="actionError"
+      class="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+    >
+      <AlertCircle class="h-4 w-4 shrink-0" />
+      {{ actionError }}
+    </div>
+
     <!-- Members table -->
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       <div
@@ -410,7 +356,7 @@ function roleDescription(role: MemberRole) {
         <div>
           <h2 class="font-semibold text-gray-900">Device Members</h2>
           <p class="mt-1 text-xs text-gray-500">
-            Manage access for {{ selectedDevice.name }}.
+            Manage access for {{ deviceName }}.
           </p>
         </div>
 
@@ -511,6 +457,7 @@ function roleDescription(role: MemberRole) {
               <td class="px-6 py-4 text-right">
                 <div class="relative inline-block">
                   <button
+                    v-if="isOwner"
                     type="button"
                     @click="toggleMenu(member.user_id)"
                     class="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
@@ -524,6 +471,7 @@ function roleDescription(role: MemberRole) {
                     class="absolute right-0 z-20 mt-1 w-44 rounded-xl border border-gray-200 bg-white p-1 text-left shadow-lg"
                   >
                     <button
+                      v-if="member.role !== 'owner'"
                       type="button"
                       @click="openEditModal(member)"
                       class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50"
@@ -593,8 +541,9 @@ function roleDescription(role: MemberRole) {
             </div>
           </div>
 
-          <div class="flex shrink-0 gap-1">
+          <div v-if="isOwner" class="flex shrink-0 gap-1">
             <button
+              v-if="member.role !== 'owner'"
               type="button"
               @click="openEditModal(member)"
               class="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
@@ -634,16 +583,7 @@ function roleDescription(role: MemberRole) {
         </p>
       </div>
     </div>
-
-    <!-- Permission note -->
-    <div class="flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-4">
-      <Info class="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
-      <p class="text-xs leading-relaxed text-gray-500">
-        Only device owners can add, update, or remove members. Role permissions
-        shown here are a frontend preview and will be enforced by the backend
-        when API integration is implemented.
-      </p>
-    </div>
+    </template>
 
     <!-- Add/Edit modal -->
     <Transition name="modal">
@@ -699,7 +639,7 @@ function roleDescription(role: MemberRole) {
               </label>
               <div class="space-y-2">
                 <label
-                  v-for="role in (['admin', 'viewer'] as MemberRole[])"
+                  v-for="role in (['admin', 'viewer'] as MemberAssignableRole[])"
                   :key="role"
                   class="flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition"
                   :class="

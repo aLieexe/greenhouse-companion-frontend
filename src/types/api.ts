@@ -38,6 +38,23 @@ export type DeviceStatus = 'unknown' | 'online' | 'offline'
 
 export type DeviceRole = 'owner' | 'admin' | 'viewer'
 
+export type MemberAssignableRole = Exclude<DeviceRole, 'owner'>
+
+export interface DeviceMember {
+  user_id: string
+  username: string
+  role: DeviceRole
+}
+
+export interface AddMemberRequest {
+  username: string
+  role: MemberAssignableRole
+}
+
+export interface UpdateMemberRequest {
+  role: MemberAssignableRole
+}
+
 export interface Device {
   id: string
   name: string
