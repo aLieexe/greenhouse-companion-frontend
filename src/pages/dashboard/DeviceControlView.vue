@@ -3,12 +3,10 @@ import { computed, onMounted, onUnmounted, ref, watch, type Component } from 'vu
 import { useRoute } from 'vue-router'
 
 import {
-  Activity,
   Droplets,
   Fan,
   Power,
   RefreshCw,
-  SlidersHorizontal,
   Zap,
 } from 'lucide-vue-next'
 
@@ -74,11 +72,6 @@ const actuatorErrors = ref<Record<ActuatorKey, string>>({
   'fan-2': '',
 })
 const actuatorLoadError = ref('')
-
-const hasReportedState = computed(() => Object.keys(actuatorStates.value).length > 0)
-const activeCount = computed(
-  () => actuatorKeys.filter((key) => actuatorStates.value[key]?.on === true).length,
-)
 
 const canControl = computed(
   () => devicesStore.deviceById(deviceId.value)?.role !== 'viewer',
@@ -445,45 +438,6 @@ onUnmounted(clearRefetchTimers)
       <p class="mt-1 text-sm text-gray-500">
         Manage and adjust your greenhouse equipment.
       </p>
-    </section>
-
-    <!-- Control Summary -->
-    <section class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-500">
-              Total Actuators
-            </p>
-
-            <p class="mt-2 text-3xl font-bold text-gray-900">
-              {{ actuatorList.length }}
-            </p>
-          </div>
-
-          <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-            <SlidersHorizontal :size="22" />
-          </div>
-        </div>
-      </div>
-
-      <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-500">
-              Active Actuators
-            </p>
-
-            <p class="mt-2 text-3xl font-bold text-emerald-600">
-              {{ hasReportedState ? activeCount : '—' }}
-            </p>
-          </div>
-
-          <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-            <Activity :size="22" />
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- Actuator Controls -->

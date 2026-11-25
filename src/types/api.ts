@@ -71,6 +71,73 @@ export interface DeviceDetail {
 
 export type ActuatorKey = 'pump' | 'fan-1' | 'fan-2'
 
+export interface DeviceConfigActuator {
+  enabled: boolean
+  metric: string
+  duty: number
+  turn_on_above?: number
+  turn_on_below?: number
+  turn_off_above?: number
+  turn_off_below?: number
+}
+
+export type DeviceConfigActuators = Partial<Record<ActuatorKey, DeviceConfigActuator>>
+
+export interface DeviceConfigBehavior {
+  automation: boolean
+  telemetry_interval_sec: number
+}
+
+export interface DeviceConfig {
+  configuration: DeviceConfigBehavior
+  actuators: DeviceConfigActuators
+}
+
+export interface ConfigAuthor {
+  id: string
+  name: string
+}
+
+export interface ConfigResponse {
+  device_id: string
+  version: number | null
+  label: string
+  created_at: string | null
+  changed_by: ConfigAuthor | null
+  applied_version: number
+  sync_state: 'in_sync' | 'pending'
+  config: DeviceConfig
+}
+
+export interface UpdateConfigRequest {
+  label: string
+  config: DeviceConfig
+}
+
+export interface ConfigVersionSummary {
+  version: number
+  label: string
+  created_at: string
+  changed_by: ConfigAuthor | null
+  is_current: boolean
+}
+
+export interface ConfigVersionListResponse {
+  versions: ConfigVersionSummary[]
+  total_count: number
+  page: number
+  page_size: number
+}
+
+export interface ConfigVersionResponse {
+  device_id: string
+  version: number
+  label: string
+  created_at: string
+  changed_by: ConfigAuthor | null
+  config: DeviceConfig
+}
+
 export type ActuatorMode = 'manual' | 'automatic'
 
 export interface ActuatorRuntimeState {
