@@ -255,54 +255,43 @@ function formatDateTime(value: string) {
   }).format(new Date(value))
 }
 
+const commandPageSizes = [10, 20, 50, 100]
 const commands = ref<DeviceCommandSummary[]>([])
 const commandTotal = ref(0)
 const commandPage = ref(1)
+const commandPageSize = ref(20)
 const commandsLoading = ref(false)
-const commandsLoadingMore = ref(false)
 const commandsError = ref('')
 const failedPage = ref(1)
-const hasMoreCommands = computed(() => commands.value.length < commandTotal.value)
+const totalPages = computed(() => Math.max(1, Math.ceil(commandTotal.value / commandPageSize.value)))
+const hasPrev = computed(() => commandPage.value > 1)
+const hasNext = computed(() => commandPage.value < totalPages.value)
 
 async function loadCommands(id: string, page: number) {
   if (id !== deviceId.value) return
 
-  const initial = page === 1
-  if (initial) commandsLoading.value = true
-  else commandsLoadingMore.value = true
+  commandsLoading.value = true
   commandsError.value = ''
 
   try {
-    const response = await listCommands(id, { page, limit: 20 })
+    const response = await listCommands(id, { page, limit: commandPageSize.value })
     if (id !== deviceId.value) return
 
-    if (initial) {
-      commands.value = response.commands
-    } else {
-      const known = new Set(commands.value.map((command) => command.id))
-      commands.value = [
-        ...commands.value,
-        ...response.commands.filter((command) => !known.has(command.id)),
-      ]
-    }
-
+    commands.value = response.commands
     commandTotal.value = response.total_count
     commandPage.value = response.page
     failedPage.value = page
   } catch (err) {
     if (id !== deviceId.value) return
 
-    if (initial) {
+    if (page === 1) {
       commands.value = []
       commandTotal.value = 0
     }
     failedPage.value = page
     commandsError.value = getApiError(err)
   } finally {
-    if (id === deviceId.value) {
-      commandsLoading.value = false
-      commandsLoadingMore.value = false
-    }
+    if (id === deviceId.value) commandsLoading.value = false
   }
 }
 
@@ -314,10 +303,17 @@ function retryCommands() {
   void loadCommands(deviceId.value, failedPage.value)
 }
 
-function loadMoreCommands() {
-  if (commandsLoadingMore.value || !hasMoreCommands.value) return
-  void loadCommands(deviceId.value, commandPage.value + 1)
+function goToCommandPage(page: number) {
+  const id = deviceId.value
+  const target = Math.min(Math.max(page, 1), totalPages.value)
+  if (!id || target === commandPage.value || commandsLoading.value) return
+  void loadCommands(id, target)
 }
+
+watch(commandPageSize, () => {
+  commandPage.value = 1
+  void loadCommands(deviceId.value, 1)
+})
 
 const expandedIds = ref<string[]>([])
 const detailLoading = ref<Record<string, boolean>>({})
@@ -425,7 +421,6 @@ watch(deviceId, (id) => {
   commandPage.value = 1
   commandsError.value = ''
   commandsLoading.value = false
-  commandsLoadingMore.value = false
   expandedIds.value = []
   detailLoading.value = {}
   detailErrors.value = {}
@@ -841,18 +836,38 @@ onUnmounted(clearRefetchTimers)
           class="flex flex-col items-center gap-2 border-t border-gray-100 px-5 py-4 sm:flex-row sm:justify-between"
         >
           <p class="text-xs text-gray-500">
-            Showing {{ commands.length }} of {{ commandTotal }}
+            Page {{ commandPage }} of {{ totalPages }} · {{ commandTotal }} records
           </p>
 
-          <button
-            v-if="hasMoreCommands"
-            type="button"
-            @click="loadMoreCommands"
-            :disabled="commandsLoadingMore"
-            class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Load more
-          </button>
+          <div class="flex items-center gap-2">
+            <select
+              v-model.number="commandPageSize"
+              aria-label="Commands per page"
+              class="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+            >
+              <option v-for="size in commandPageSizes" :key="size" :value="size">
+                {{ size }} / page
+              </option>
+            </select>
+
+            <button
+              type="button"
+              @click="goToCommandPage(commandPage - 1)"
+              :disabled="!hasPrev || commandsLoading"
+              class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Previous
+            </button>
+
+            <button
+              type="button"
+              @click="goToCommandPage(commandPage + 1)"
+              :disabled="!hasNext || commandsLoading"
+              class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
 
