@@ -1,273 +1,160 @@
-
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   AlertCircle,
-  AlertTriangle,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
   Filter,
-  Info,
+  RefreshCw,
   Search,
-  Terminal,
 } from 'lucide-vue-next'
 
-type Severity = 'info' | 'warning' | 'error'
+import { getApiError } from '../../api/http'
+import { listLogs } from '../../api/logs'
+import { useDevicesStore } from '../../stores/devices'
+import type { DeviceLog } from '../../types/api'
 
-interface DeviceLog {
-  id: number
-  device_id: string
-  boot_id: string
-  code: string
-  message: string
-  received_at: string
-  severity: Severity
-  uptime_s: number
-}
-
-interface Device {
-  id: string
-  name: string
-  status: string
-}
-
-const devices: Device[] = [
-  { id: 'device-001', name: 'Main Unit', status: 'online' },
-  { id: 'device-002', name: 'Backup Unit', status: 'offline' },
-  { id: 'device-003', name: 'Experimental Unit', status: 'unknown' },
-]
-
-const selectedDevice = ref('device-001')
-const searchQuery = ref('')
-const severityFilter = ref('all')
-const codeFilter = ref('all')
-const currentPage = ref(1)
-const pageSize = 8
-
-// Simulated log data following the backend DeviceLog schema.
-const logs = ref<DeviceLog[]>([
-  {
-    id: 108,
-    device_id: 'device-001',
-    boot_id: 'boot-a81f20',
-    code: 'PUMP_ACTIVATED',
-    message: 'Water pump activated because soil moisture reached the configured threshold.',
-    received_at: '2026-11-23T14:32:15+07:00',
-    severity: 'info',
-    uptime_s: 86420,
-  },
-  {
-    id: 107,
-    device_id: 'device-001',
-    boot_id: 'boot-a81f20',
-    code: 'SOIL_MOISTURE_LOW',
-    message: 'Soil moisture level dropped below the configured threshold.',
-    received_at: '2026-11-23T14:30:42+07:00',
-    severity: 'warning',
-    uptime_s: 86327,
-  },
-  {
-    id: 106,
-    device_id: 'device-001',
-    boot_id: 'boot-a81f20',
-    code: 'SENSOR_READING',
-    message: 'Sensor readings received successfully.',
-    received_at: '2026-11-23T14:25:10+07:00',
-    severity: 'info',
-    uptime_s: 86000,
-  },
-  {
-    id: 105,
-    device_id: 'device-001',
-    boot_id: 'boot-a81f20',
-    code: 'SENSOR_TIMEOUT',
-    message: 'Failed to receive a response from the soil temperature sensor.',
-    received_at: '2026-11-23T14:20:03+07:00',
-    severity: 'error',
-    uptime_s: 85700,
-  },
-  {
-    id: 104,
-    device_id: 'device-001',
-    boot_id: 'boot-a81f20',
-    code: 'FAN_ACTIVATED',
-    message: 'Cooling fan activated by the automatic control system.',
-    received_at: '2026-11-23T14:15:22+07:00',
-    severity: 'info',
-    uptime_s: 85400,
-  },
-  {
-    id: 103,
-    device_id: 'device-001',
-    boot_id: 'boot-a81f20',
-    code: 'AMBIENT_TEMP_HIGH',
-    message: 'Ambient temperature exceeded the configured upper threshold.',
-    received_at: '2026-11-23T14:10:45+07:00',
-    severity: 'warning',
-    uptime_s: 85100,
-  },
-  {
-    id: 102,
-    device_id: 'device-001',
-    boot_id: 'boot-a81f20',
-    code: 'DEVICE_CONNECTED',
-    message: 'Device successfully connected to the greenhouse system.',
-    received_at: '2026-11-23T13:55:00+07:00',
-    severity: 'info',
-    uptime_s: 84200,
-  },
-  {
-    id: 101,
-    device_id: 'device-001',
-    boot_id: 'boot-a81f20',
-    code: 'CONFIG_UPDATED',
-    message: 'Device configuration was updated successfully.',
-    received_at: '2026-11-23T13:40:18+07:00',
-    severity: 'info',
-    uptime_s: 83300,
-  },
-  {
-    id: 100,
-    device_id: 'device-001',
-    boot_id: 'boot-91c420',
-    code: 'DEVICE_RESTARTED',
-    message: 'Device restarted and started a new boot session.',
-    received_at: '2026-11-23T12:30:00+07:00',
-    severity: 'warning',
-    uptime_s: 0,
-  },
-  {
-    id: 99,
-    device_id: 'device-001',
-    boot_id: 'boot-91c420',
-    code: 'DEVICE_CONNECTED',
-    message: 'Device connection established.',
-    received_at: '2026-11-23T12:30:08+07:00',
-    severity: 'info',
-    uptime_s: 8,
-  },
-  {
-    id: 98,
-    device_id: 'device-001',
-    boot_id: 'boot-91c420',
-    code: 'SENSOR_READING',
-    message: 'All sensor readings received successfully.',
-    received_at: '2026-11-23T12:35:00+07:00',
-    severity: 'info',
-    uptime_s: 300,
-  },
-  {
-    id: 97,
-    device_id: 'device-001',
-    boot_id: 'boot-91c420',
-    code: 'PUMP_ACTIVATED',
-    message: 'Water pump activated by automatic irrigation.',
-    received_at: '2026-11-23T12:40:12+07:00',
-    severity: 'info',
-    uptime_s: 612,
-  },
-  {
-    id: 96,
-    device_id: 'device-001',
-    boot_id: 'boot-91c420',
-    code: 'NETWORK_WARNING',
-    message: 'Temporary network interruption detected.',
-    received_at: '2026-11-23T12:45:00+07:00',
-    severity: 'warning',
-    uptime_s: 900,
-  },
-  {
-    id: 95,
-    device_id: 'device-001',
-    boot_id: 'boot-91c420',
-    code: 'SENSOR_READING',
-    message: 'Sensor readings received successfully.',
-    received_at: '2026-11-23T12:50:00+07:00',
-    severity: 'info',
-    uptime_s: 1200,
-  },
-  {
-    id: 94,
-    device_id: 'device-001',
-    boot_id: 'boot-91c420',
-    code: 'FAN_ACTIVATED',
-    message: 'Cooling fan activated.',
-    received_at: '2026-11-23T12:55:00+07:00',
-    severity: 'info',
-    uptime_s: 1500,
-  },
-])
-
-const deviceLogs = computed(() =>
-  logs.value.filter((log) => log.device_id === selectedDevice.value),
+const route = useRoute()
+const store = useDevicesStore()
+const deviceId = computed(() => String(route.params.deviceId ?? ''))
+const deviceName = computed(
+  () => store.deviceById(deviceId.value)?.name ?? 'Unknown Device',
 )
 
-const filteredLogs = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
+interface LogFilter {
+  bootId: string
+  severity: string
+  uptime: string
+  code: string
+}
 
-  return deviceLogs.value.filter((log) => {
-    const matchesSearch =
-      !query ||
-      log.message.toLowerCase().includes(query) ||
-      log.code.toLowerCase().includes(query) ||
-      log.boot_id.toLowerCase().includes(query)
+interface LogQuery {
+  boot_id?: string
+  severity?: string
+  uptime_s?: number
+  code?: string
+}
 
-    const matchesSeverity =
-      severityFilter.value === 'all' ||
-      log.severity === severityFilter.value
+const PAGE_SIZES = [10, 20, 50, 100]
+const filterClass =
+  'w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
 
-    const matchesCode =
-      codeFilter.value === 'all' ||
-      log.code === codeFilter.value
+function emptyFilter(): LogFilter {
+  return { bootId: '', severity: '', uptime: '', code: '' }
+}
 
-    return matchesSearch && matchesSeverity && matchesCode
-  })
-})
+const filter = ref<LogFilter>(emptyFilter())
+const filterError = ref('')
+
+const logs = ref<DeviceLog[]>([])
+const total = ref(0)
+const page = ref(1)
+const pageSize = ref(20)
+const loading = ref(false)
+const error = ref('')
+let requestId = 0
 
 const totalPages = computed(() =>
-  Math.max(1, Math.ceil(filteredLogs.value.length / pageSize)),
-)
-
-const paginatedLogs = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredLogs.value.slice(start, start + pageSize)
-})
-
-const totalLogs = computed(() => deviceLogs.value.length)
-
-const infoCount = computed(
-  () => deviceLogs.value.filter((log) => log.severity === 'info').length,
-)
-
-const warningCount = computed(
-  () => deviceLogs.value.filter((log) => log.severity === 'warning').length,
-)
-
-const errorCount = computed(
-  () => deviceLogs.value.filter((log) => log.severity === 'error').length,
-)
-
-const availableCodes = computed(() => [
-  ...new Set(deviceLogs.value.map((log) => log.code)),
-])
-
-const selectedDeviceName = computed(
-  () =>
-    devices.find((device) => device.id === selectedDevice.value)?.name ??
-    'Unknown Device',
+  Math.max(1, Math.ceil(total.value / pageSize.value)),
 )
 
 const firstItem = computed(() =>
-  filteredLogs.value.length === 0
-    ? 0
-    : (currentPage.value - 1) * pageSize + 1,
+  total.value === 0 ? 0 : (page.value - 1) * pageSize.value + 1,
 )
 
 const lastItem = computed(() =>
-  Math.min(currentPage.value * pageSize, filteredLogs.value.length),
+  Math.min(page.value * pageSize.value, total.value),
 )
+
+function parseUptime(value: string) {
+  if (!value.trim()) return null
+  const parsed = Number(value)
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null
+}
+
+function queryFromFilter(): LogQuery | null {
+  const params: LogQuery = {}
+
+  const bootId = filter.value.bootId.trim()
+  if (bootId) params.boot_id = bootId
+
+  const severity = filter.value.severity.trim()
+  if (severity) params.severity = severity
+
+  const uptime = parseUptime(filter.value.uptime)
+  if (uptime === null && filter.value.uptime.trim()) {
+    filterError.value = 'Uptime must be a non-negative integer'
+    return null
+  }
+  if (uptime !== null) params.uptime_s = uptime
+
+  const code = filter.value.code.trim()
+  if (code) params.code = code
+
+  filterError.value = ''
+  return params
+}
+
+function isCurrentRequest(id: string, currentRequest: number) {
+  return id === deviceId.value && currentRequest === requestId
+}
+
+async function loadLogs() {
+  const params = queryFromFilter()
+  if (!params) return
+
+  const id = deviceId.value
+  const currentRequest = ++requestId
+  const requestedPage = page.value
+  const limit = pageSize.value
+
+  loading.value = true
+  error.value = ''
+
+  try {
+    const response = await listLogs(id, {
+      page: requestedPage,
+      limit,
+      ...params,
+    })
+    if (!isCurrentRequest(id, currentRequest)) return
+
+    logs.value = response.logs
+    total.value = response.total_count
+  } catch (err) {
+    if (!isCurrentRequest(id, currentRequest)) return
+    logs.value = []
+    total.value = 0
+    error.value = getApiError(err)
+  } finally {
+    if (isCurrentRequest(id, currentRequest)) loading.value = false
+  }
+}
+
+function applyFilters() {
+  page.value = 1
+  void loadLogs()
+}
+
+function resetFilters() {
+  filter.value = emptyFilter()
+  filterError.value = ''
+  page.value = 1
+  void loadLogs()
+}
+
+function changePage(nextPage: number) {
+  if (nextPage < 1 || nextPage > totalPages.value || loading.value) return
+  page.value = nextPage
+  void loadLogs()
+}
+
+function changePageSize() {
+  page.value = 1
+  void loadLogs()
+}
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('id-ID', {
@@ -300,31 +187,48 @@ function formatUptime(seconds: number) {
   return parts.join(' ') || '0s'
 }
 
-function severityClass(severity: Severity) {
-  const classes: Record<Severity, string> = {
-    info: 'bg-blue-50 text-blue-700 ring-blue-200',
-    warning: 'bg-amber-50 text-amber-700 ring-amber-200',
-    error: 'bg-red-50 text-red-700 ring-red-200',
-  }
-
-  return classes[severity]
+const severityStyles: Record<string, string> = {
+  info: 'bg-blue-50 text-blue-700 ring-blue-200',
+  information: 'bg-blue-50 text-blue-700 ring-blue-200',
+  warn: 'bg-amber-50 text-amber-700 ring-amber-200',
+  warning: 'bg-amber-50 text-amber-700 ring-amber-200',
+  error: 'bg-red-50 text-red-700 ring-red-200',
+  err: 'bg-red-50 text-red-700 ring-red-200',
 }
 
-function resetFilters() {
-  searchQuery.value = ''
-  severityFilter.value = 'all'
-  codeFilter.value = 'all'
-  currentPage.value = 1
+const severityDots: Record<string, string> = {
+  info: 'bg-blue-500',
+  information: 'bg-blue-500',
+  warn: 'bg-amber-500',
+  warning: 'bg-amber-500',
+  error: 'bg-red-500',
+  err: 'bg-red-500',
 }
 
-function changePage(page: number) {
-  if (page < 1 || page > totalPages.value) return
-  currentPage.value = page
+function severityClass(severity: string) {
+  return (
+    severityStyles[severity.toLowerCase()] ??
+    'bg-gray-100 text-gray-600 ring-gray-200'
+  )
 }
 
-function handleFilterChange() {
-  currentPage.value = 1
+function severityDotClass(severity: string) {
+  return severityDots[severity.toLowerCase()] ?? 'bg-gray-400'
 }
+
+onMounted(() => {
+  void loadLogs()
+})
+
+watch(deviceId, () => {
+  requestId++
+  logs.value = []
+  total.value = 0
+  error.value = ''
+  loading.value = false
+  page.value = 1
+  void loadLogs()
+})
 </script>
 
 <template>
@@ -340,55 +244,32 @@ function handleFilterChange() {
       </p>
     </section>
 
-    <!-- Summary cards -->
-    <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <p class="text-sm font-medium text-gray-500">Total Logs</p>
-          <div class="rounded-lg bg-gray-100 p-2 text-gray-600">
-            <Terminal class="h-5 w-5" />
-          </div>
-        </div>
-        <p class="mt-4 text-3xl font-bold text-gray-900">{{ totalLogs }}</p>
-        <p class="mt-1 text-xs text-gray-500">Recorded device events</p>
-      </div>
-
-      <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <p class="text-sm font-medium text-gray-500">Information</p>
-          <div class="rounded-lg bg-blue-50 p-2 text-blue-600">
-            <Info class="h-5 w-5" />
-          </div>
-        </div>
-        <p class="mt-4 text-3xl font-bold text-gray-900">{{ infoCount }}</p>
-        <p class="mt-1 text-xs text-gray-500">Normal system events</p>
-      </div>
-
-      <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <p class="text-sm font-medium text-gray-500">Warnings</p>
-          <div class="rounded-lg bg-amber-50 p-2 text-amber-600">
-            <AlertTriangle class="h-5 w-5" />
-          </div>
-        </div>
-        <p class="mt-4 text-3xl font-bold text-gray-900">{{ warningCount }}</p>
-        <p class="mt-1 text-xs text-gray-500">Events requiring attention</p>
-      </div>
-
-      <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div class="flex items-center justify-between">
-          <p class="text-sm font-medium text-gray-500">Errors</p>
-          <div class="rounded-lg bg-red-50 p-2 text-red-600">
-            <AlertCircle class="h-5 w-5" />
-          </div>
-        </div>
-        <p class="mt-4 text-3xl font-bold text-gray-900">{{ errorCount }}</p>
-        <p class="mt-1 text-xs text-gray-500">Detected system errors</p>
-      </div>
+    <section
+      v-if="error"
+      class="rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center"
+    >
+      <AlertCircle :size="28" class="mx-auto text-rose-600" />
+      <p class="mt-3 text-sm font-semibold text-rose-800">
+        Unable to load logs
+      </p>
+      <p class="mt-1 text-sm text-rose-700">
+        {{ error }}
+      </p>
+      <button
+        type="button"
+        @click="loadLogs"
+        class="mt-4 inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
+      >
+        <RefreshCw :size="16" />
+        Retry
+      </button>
     </section>
 
     <!-- Logs table -->
-    <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <section
+      v-else
+      class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+    >
       <div class="border-b border-gray-200 p-5">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -396,58 +277,85 @@ function handleFilterChange() {
               Activity History
             </h2>
             <p class="mt-1 text-sm text-gray-500">
-              Showing logs for {{ selectedDeviceName }}
+              Showing logs for {{ deviceName }}
             </p>
           </div>
 
-          <div class="flex flex-col gap-2 sm:flex-row">
-            <div class="relative">
-              <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                v-model="searchQuery"
-                @input="handleFilterChange"
-                type="text"
-                placeholder="Search logs..."
-                class="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 sm:w-52"
-              />
-            </div>
-
-            <div class="relative">
-              <Filter class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <select
-                v-model="severityFilter"
-                @change="handleFilterChange"
-                class="w-full appearance-none rounded-lg border border-gray-300 bg-white py-2.5 pl-9 pr-8 text-sm text-gray-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 sm:w-36"
-              >
-                <option value="all">All Severity</option>
-                <option value="info">Information</option>
-                <option value="warning">Warning</option>
-                <option value="error">Error</option>
-              </select>
-            </div>
-
-            <select
-              v-model="codeFilter"
-              @change="handleFilterChange"
-              class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 sm:w-48"
-            >
-              <option value="all">All Log Codes</option>
-              <option
-                v-for="code in availableCodes"
-                :key="code"
-                :value="code"
-              >
-                {{ code }}
-              </option>
-            </select>
-
-            <button
-              @click="resetFilters"
-              class="rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
-            >
-              Reset
-            </button>
+          <div class="flex items-center gap-2">
+            <Filter class="h-4 w-4 text-gray-400" />
+            <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Filters
+            </span>
           </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <label class="block">
+            <span class="mb-1 block text-xs font-medium text-gray-500">Boot ID</span>
+            <input
+              v-model="filter.bootId"
+              type="text"
+              placeholder="e.g. boot-a81f20"
+              :class="filterClass"
+              @keyup.enter="applyFilters"
+            />
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-xs font-medium text-gray-500">Severity</span>
+            <input
+              v-model="filter.severity"
+              type="text"
+              placeholder="e.g. WARN"
+              :class="filterClass"
+              @keyup.enter="applyFilters"
+            />
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-xs font-medium text-gray-500">Uptime (s)</span>
+            <input
+              v-model="filter.uptime"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="e.g. 120"
+              :class="filterClass"
+              @keyup.enter="applyFilters"
+            />
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-xs font-medium text-gray-500">Log Code</span>
+            <input
+              v-model="filter.code"
+              type="text"
+              placeholder="e.g. SENSOR_TIMEOUT"
+              :class="filterClass"
+              @keyup.enter="applyFilters"
+            />
+          </label>
+        </div>
+
+        <p v-if="filterError" class="mt-2 text-xs text-rose-600">
+          {{ filterError }}
+        </p>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            @click="applyFilters"
+            class="rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+          >
+            Apply
+          </button>
+          <button
+            type="button"
+            @click="resetFilters"
+            class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+          >
+            Reset
+          </button>
         </div>
       </div>
 
@@ -478,102 +386,126 @@ function handleFilterChange() {
           </thead>
 
           <tbody class="divide-y divide-gray-100">
-            <tr
-              v-for="log in paginatedLogs"
-              :key="log.id"
-              class="transition hover:bg-gray-50"
-            >
-              <td class="max-w-md px-5 py-4">
-                <p class="text-sm font-medium text-gray-900">
-                  {{ log.message }}
-                </p>
-                <p class="mt-1 text-xs text-gray-400">
-                  Log ID: #{{ log.id }}
-                </p>
+            <tr v-if="loading">
+              <td colspan="6" class="px-5 py-16 text-center text-sm text-gray-500">
+                <div class="flex items-center justify-center gap-2">
+                  <RefreshCw class="h-5 w-5 animate-spin text-emerald-600" />
+                  Loading logs...
+                </div>
               </td>
+            </tr>
 
-              <td class="px-5 py-4">
-                <span
-                  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 ring-inset"
-                  :class="severityClass(log.severity)"
-                >
+            <template v-else>
+              <tr
+                v-for="log in logs"
+                :key="log.id"
+                class="transition hover:bg-gray-50"
+              >
+                <td class="max-w-md px-5 py-4">
+                  <p class="text-sm font-medium text-gray-900">
+                    {{ log.message }}
+                  </p>
+                  <p class="mt-1 text-xs text-gray-400">
+                    Log ID: #{{ log.id }}
+                  </p>
+                </td>
+
+                <td class="px-5 py-4">
                   <span
-                    class="h-1.5 w-1.5 rounded-full"
-                    :class="{
-                      'bg-blue-500': log.severity === 'info',
-                      'bg-amber-500': log.severity === 'warning',
-                      'bg-red-500': log.severity === 'error',
-                    }"
-                  />
-                  {{ log.severity }}
-                </span>
-              </td>
+                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset"
+                    :class="severityClass(log.severity)"
+                  >
+                    <span
+                      class="h-1.5 w-1.5 rounded-full"
+                      :class="severityDotClass(log.severity)"
+                    />
+                    {{ log.severity }}
+                  </span>
+                </td>
 
-              <td class="px-5 py-4">
-                <span class="rounded-md bg-gray-100 px-2 py-1 font-mono text-xs text-gray-700">
-                  {{ log.code }}
-                </span>
-              </td>
+                <td class="px-5 py-4">
+                  <span class="rounded-md bg-gray-100 px-2 py-1 font-mono text-xs text-gray-700">
+                    {{ log.code }}
+                  </span>
+                </td>
 
-              <td class="px-5 py-4">
-                <span class="font-mono text-xs text-gray-500">
-                  {{ log.boot_id }}
-                </span>
-              </td>
+                <td class="px-5 py-4">
+                  <span class="font-mono text-xs text-gray-500">
+                    {{ log.boot_id }}
+                  </span>
+                </td>
 
-              <td class="px-5 py-4">
-                <span class="text-sm text-gray-600">
-                  {{ formatUptime(log.uptime_s) }}
-                </span>
-              </td>
+                <td class="px-5 py-4">
+                  <span class="text-sm text-gray-600">
+                    {{ formatUptime(log.uptime_s) }}
+                  </span>
+                </td>
 
-              <td class="px-5 py-4">
-                <div class="flex items-center gap-2 whitespace-nowrap text-sm text-gray-600">
-                  <Clock3 class="h-4 w-4 text-gray-400" />
-                  {{ formatDate(log.received_at) }}
-                </div>
-              </td>
-            </tr>
+                <td class="px-5 py-4">
+                  <div class="flex items-center gap-2 whitespace-nowrap text-sm text-gray-600">
+                    <Clock3 class="h-4 w-4 text-gray-400" />
+                    {{ formatDate(log.received_at) }}
+                  </div>
+                </td>
+              </tr>
 
-            <tr v-if="paginatedLogs.length === 0">
-              <td colspan="6" class="px-5 py-16 text-center">
-                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
-                  <Search class="h-5 w-5" />
-                </div>
-                <p class="mt-3 text-sm font-semibold text-gray-900">
-                  No logs found
-                </p>
-                <p class="mt-1 text-sm text-gray-500">
-                  Try changing your search query or filters.
-                </p>
-                <button
-                  @click="resetFilters"
-                  class="mt-4 text-sm font-semibold text-emerald-700 hover:text-emerald-800"
-                >
-                  Clear all filters
-                </button>
-              </td>
-            </tr>
+              <tr v-if="logs.length === 0">
+                <td colspan="6" class="px-5 py-16 text-center">
+                  <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+                    <Search class="h-5 w-5" />
+                  </div>
+                  <p class="mt-3 text-sm font-semibold text-gray-900">
+                    No logs found
+                  </p>
+                  <p class="mt-1 text-sm text-gray-500">
+                    Try changing your filters.
+                  </p>
+                  <button
+                    type="button"
+                    @click="resetFilters"
+                    class="mt-4 text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+                  >
+                    Clear all filters
+                  </button>
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>
 
       <!-- Pagination -->
       <div class="flex flex-col gap-3 border-t border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p class="text-sm text-gray-500">
-          Showing
-          <span class="font-semibold text-gray-800">{{ firstItem }}</span>
-          to
-          <span class="font-semibold text-gray-800">{{ lastItem }}</span>
-          of
-          <span class="font-semibold text-gray-800">{{ filteredLogs.length }}</span>
-          results
-        </p>
+        <div class="flex flex-wrap items-center gap-3">
+          <p class="text-sm text-gray-500">
+            Showing
+            <span class="font-semibold text-gray-800">{{ firstItem }}</span>
+            to
+            <span class="font-semibold text-gray-800">{{ lastItem }}</span>
+            of
+            <span class="font-semibold text-gray-800">{{ total }}</span>
+            results
+          </p>
+
+          <label class="flex items-center gap-2 text-xs text-gray-500">
+            Rows per page
+            <select
+              v-model.number="pageSize"
+              @change="changePageSize"
+              class="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            >
+              <option v-for="size in PAGE_SIZES" :key="size" :value="size">
+                {{ size }}
+              </option>
+            </select>
+          </label>
+        </div>
 
         <div class="flex items-center gap-2">
           <button
-            @click="changePage(currentPage - 1)"
-            :disabled="currentPage === 1"
+            type="button"
+            @click="changePage(page - 1)"
+            :disabled="page <= 1 || loading"
             class="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ChevronLeft class="h-4 w-4" />
@@ -581,12 +513,13 @@ function handleFilterChange() {
           </button>
 
           <span class="px-2 text-sm text-gray-600">
-            Page {{ currentPage }} of {{ totalPages }}
+            Page {{ page }} of {{ totalPages }}
           </span>
 
           <button
-            @click="changePage(currentPage + 1)"
-            :disabled="currentPage === totalPages"
+            type="button"
+            @click="changePage(page + 1)"
+            :disabled="page >= totalPages || loading"
             class="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Next
@@ -595,14 +528,5 @@ function handleFilterChange() {
         </div>
       </div>
     </section>
-
-    <!-- Footer note -->
-    <div class="flex items-start gap-2 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
-      <CheckCircle2 class="mt-0.5 h-4 w-4 shrink-0" />
-      <p>
-        Log records are displayed in a simulated environment. Live device logs
-        will be loaded from the backend API after integration.
-      </p>
-    </div>
   </div>
 </template>

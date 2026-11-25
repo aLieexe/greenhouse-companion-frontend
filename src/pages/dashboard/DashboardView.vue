@@ -578,13 +578,14 @@ onUnmounted(clearRefetchTimers)
         <div class="mt-6">
           <div
             v-if="sortedTelemetry.length === 0"
-            class="flex h-64 flex-col items-center justify-center rounded-xl bg-gray-50 px-6 text-center text-sm text-gray-500"
+            class="flex h-48 flex-col items-center justify-center rounded-xl bg-gray-50 px-6 text-center text-sm text-gray-500"
           >
             <span>{{ telemetryError || 'No telemetry recorded yet' }}</span>
           </div>
 
           <SensorChart
             v-else
+            height="h-48"
             :labels="chartLabels"
             :values="chartValues"
             :label="activeSensor.label"

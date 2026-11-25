@@ -235,3 +235,21 @@ export interface CommandListResponse {
   page: number
   page_size: number
 }
+
+export interface DeviceLog {
+  id: number
+  device_id: string
+  boot_id: string
+  code: string
+  message: string
+  received_at: string
+  severity: string
+  uptime_s: number
+}
+
+export interface LogListResponse {
+  logs: DeviceLog[]
+  total_count: number
+  page: number
+  page_size: number
+}
