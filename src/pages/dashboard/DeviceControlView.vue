@@ -397,6 +397,13 @@ function detailStatus(id: string) {
   return commandDetails.get(id)?.status ?? ''
 }
 
+function triggeredByDisplay(command: DeviceCommandSummary | DeviceCommand) {
+  if (command.triggered_by === authStore.user?.id) return { label: 'You', isId: false }
+  const name = command.triggered_by_name
+  if (typeof name === 'string' && name.trim() !== '') return { label: name, isId: false }
+  return { label: command.triggered_by, isId: true }
+}
+
 onMounted(() => {
   void loadActuatorState()
   void loadCommands(deviceId.value, 1)
@@ -677,7 +684,7 @@ onUnmounted(clearRefetchTimers)
           </h4>
 
           <p class="mt-1 text-sm text-gray-500">
-            Audit trail of commands sent to this device.
+            Audit trail of commands sent to this device, newest first.
           </p>
         </div>
 
@@ -727,13 +734,17 @@ onUnmounted(clearRefetchTimers)
               </div>
 
               <div class="flex shrink-0 items-center gap-3 text-xs text-gray-500">
-                <span v-if="command.triggered_by === authStore.user?.id" class="font-medium text-gray-600">
-                  You
-                </span>
-
-                <code v-else :title="command.triggered_by" class="max-w-32 truncate font-mono text-gray-500">
+                <code
+                  v-if="triggeredByDisplay(command).isId"
+                  :title="command.triggered_by"
+                  class="max-w-32 truncate font-mono text-gray-500"
+                >
                   {{ command.triggered_by }}
                 </code>
+
+                <span v-else class="font-medium text-gray-600">
+                  {{ triggeredByDisplay(command).label }}
+                </span>
 
                 <span class="text-gray-300">
                   {{ expandedIds.includes(command.id) ? '−' : '+' }}

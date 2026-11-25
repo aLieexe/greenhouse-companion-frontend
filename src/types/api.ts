@@ -130,6 +130,7 @@ export interface DeviceCommand {
   status: string
   payload: Record<string, unknown>
   triggered_by: string
+  triggered_by_name?: string
   created_at: string
   acked_at?: string
   ack_result?: Record<string, unknown>
@@ -140,6 +141,7 @@ export interface DeviceCommandSummary {
   action: string
   status: string
   triggered_by: string
+  triggered_by_name?: string
   created_at: string
 }
 
