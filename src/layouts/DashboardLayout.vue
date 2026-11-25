@@ -8,8 +8,7 @@ import { useDevicesStore } from '../stores/devices'
 
 import {
   Activity,
-  Bell,
-  ChevronDown,
+  ChevronRight,
   Cpu,
   LayoutDashboard,
   Leaf,
@@ -134,39 +133,30 @@ const navigation = computed(() => [
 
       <!-- Header -->
       <header class="flex h-20 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-5 sm:px-8">
-        <div>
-          <p class="text-sm text-gray-500">Welcome back,</p>
-          <h2 class="text-lg font-bold text-gray-900">
-            {{ deviceName }}
-          </h2>
+        <div class="flex items-center">
+          <nav class="flex items-center gap-2 text-sm">
+            <RouterLink
+              to="/devices"
+              class="text-gray-500 transition hover:text-emerald-700"
+            >
+              devices
+            </RouterLink>
+            <ChevronRight :size="14" class="text-gray-400" />
+            <span class="font-medium text-gray-900">
+              {{ deviceName }}
+            </span>
+          </nav>
         </div>
 
-        <div class="flex items-center gap-4">
-          <button
-            type="button"
-            class="relative rounded-xl p-2.5 text-gray-500 transition hover:bg-gray-100"
-          >
-            <Bell :size="20" />
-            <span class="absolute right-2 top-2 h-2 w-2 rounded-full bg-emerald-500" />
-          </button>
+        <button type="button" class="flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">
+            {{ initials }}
+          </div>
 
-          <div class="hidden h-9 w-px bg-gray-200 sm:block" />
-
-          <button type="button" class="flex items-center gap-3">
-            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">
-              {{ initials }}
-            </div>
-
-            <div class="hidden text-left sm:block">
-              <p class="text-sm font-semibold text-gray-800">
-                {{ auth.user?.username ?? 'User' }}
-              </p>
-              <p class="text-xs text-gray-400">Greenhouse Owner</p>
-            </div>
-
-            <ChevronDown :size="16" class="hidden text-gray-400 sm:block" />
-          </button>
-        </div>
+          <p class="hidden text-sm font-semibold text-gray-800 sm:block">
+            {{ auth.user?.username ?? 'User' }}
+          </p>
+        </button>
       </header>
 
       <!-- Page Content -->

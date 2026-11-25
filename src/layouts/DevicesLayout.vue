@@ -55,12 +55,9 @@ async function handleSignOut() {
             {{ initials }}
           </div>
 
-          <div class="hidden text-left sm:block">
-            <p class="text-sm font-semibold text-gray-800">
-              {{ auth.user?.username ?? 'User' }}
-            </p>
-            <p class="text-xs text-gray-400">Greenhouse Owner</p>
-          </div>
+          <p class="hidden text-sm font-semibold text-gray-800 sm:block">
+            {{ auth.user?.username ?? 'User' }}
+          </p>
         </div>
 
         <button

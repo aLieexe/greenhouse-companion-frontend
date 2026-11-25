@@ -46,14 +46,19 @@ const filteredDevices = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
 
   return devices.value.filter((device) => {
+    const macValues = [
+      device.hardware_id.toLowerCase(),
+      formatMacAddress(device.hardware_id).toLowerCase(),
+    ]
+
     const matchesSearch =
       device.name.toLowerCase().includes(query) ||
-      device.hardware_id.toLowerCase().includes(query) ||
-      device.id.toLowerCase().includes(query)
+      device.id.toLowerCase().includes(query) ||
+      macValues.some((mac) => mac.includes(query))
 
     const matchesStatus =
       statusFilter.value === 'all' ||
-      device.status === statusFilter.value
+      device.status.toLowerCase() === statusFilter.value
 
     return matchesSearch && matchesStatus
   })
@@ -396,7 +401,7 @@ async function deleteDevice(device: Device) {
 
               <td class="px-6 py-4">
                 <span class="font-mono text-xs text-gray-600">
-                  {{ device.hardware_id }}
+                  {{ formatMacAddress(device.hardware_id) }}
                 </span>
               </td>
 
@@ -522,7 +527,7 @@ async function deleteDevice(device: Device) {
             <div>
               <p class="text-gray-400">MAC Address</p>
               <p class="mt-1 break-all font-mono text-gray-700">
-                {{ device.hardware_id }}
+                {{ formatMacAddress(device.hardware_id) }}
               </p>
             </div>
 

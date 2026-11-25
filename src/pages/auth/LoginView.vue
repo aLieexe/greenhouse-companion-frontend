@@ -64,7 +64,7 @@ async function handleLogin() {
 
 <template>
   <main class="min-h-screen bg-[#f7faf7] flex items-center justify-center p-4 lg:p-8">
-    <div class="w-full max-w-6xl min-h-[680px] bg-white rounded-3xl shadow-xl shadow-green-900/5 overflow-hidden grid lg:grid-cols-2">
+    <div class="w-full max-w-6xl min-h-170 bg-white rounded-3xl shadow-xl shadow-green-900/5 overflow-hidden grid lg:grid-cols-2">
 
       <!-- Left: Login Form -->
       <section class="flex flex-col justify-center px-7 py-12 sm:px-12 lg:px-16">
@@ -178,7 +178,7 @@ async function handleLogin() {
       </section>
 
       <!-- Right: Branding Panel -->
-      <section class="hidden lg:flex relative overflow-hidden bg-gradient-to-br from-emerald-800 via-emerald-700 to-green-600 items-center justify-center p-12">
+      <section class="hidden lg:flex relative overflow-hidden bg-linear-to-br from-emerald-800 via-emerald-700 to-green-600 items-center justify-center p-12">
         <div class="absolute w-96 h-96 rounded-full border border-white/10 -top-32 -right-24"></div>
         <div class="absolute w-72 h-72 rounded-full border border-white/10 -bottom-20 -left-20"></div>
 

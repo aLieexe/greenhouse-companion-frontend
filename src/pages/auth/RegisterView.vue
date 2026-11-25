@@ -1,4 +1,4 @@
- <script setup lang="ts">
+<script setup lang="ts">
 import { ArrowRight, Eye, EyeOff, Leaf, LockKeyhole, UserRound } from "lucide-vue-next";
 import { ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
@@ -54,11 +54,11 @@ async function handleRegister() {
 <template>
     <main class="min-h-screen bg-[#f7faf7] flex items-center justify-center p-4 lg:p-8">
         <div
-            class="w-full max-w-6xl min-h-[720px] bg-white rounded-3xl shadow-xl shadow-green-900/5 overflow-hidden grid lg:grid-cols-2"
+            class="w-full max-w-6xl min-h-180 bg-white rounded-3xl shadow-xl shadow-green-900/5 overflow-hidden grid lg:grid-cols-2"
         >
             <!-- Left: Branding Panel -->
             <section
-                class="hidden lg:flex relative overflow-hidden bg-gradient-to-br from-emerald-800 via-emerald-700 to-green-600 items-center justify-center p-12 order-2"
+                class="hidden lg:flex relative overflow-hidden bg-linear-to-br from-emerald-800 via-emerald-700 to-green-600 items-center justify-center p-12 order-2"
             >
                 <div
                     class="absolute w-96 h-96 rounded-full border border-white/10 -top-32 -right-24"
